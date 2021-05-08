@@ -8,23 +8,86 @@ app.use(express.json());
 app.use(cors());
 
 const users = [];
-
+// ############################################
 function checksExistsUserAccount(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers;
+
+  const user = users.find( (user) => user.username === username );
+
+  if(!user) {
+    return response.status(404).json({
+      error: "Username not found! "
+    });
+  };
+
+  request.user =  user ;
+
+  return next();
 }
 
 function checksCreateTodosUserAvailability(request, response, next) {
-  // Complete aqui
+  const { user } = request;
+
+  const pro = user.pro;
+  const todoSaved = user.todos.length;
+  var available = (pro === false && todoSaved <10 || pro === true) ? true : false;
+  //console.log(user.pro);
+  //console.log(user.todos.length);
+if(available){
+  return next();
 }
 
+return response.status(403).json({ error: "Free plan or saved more than 10 times."})
+}
+// ############################################
 function checksTodoExists(request, response, next) {
-  // Complete aqui
-}
+  const { id } = request.params;
 
+  if(!validate(id)){
+    return response.status(400).json({ 
+      error: "Id not valid!"
+    });
+  };
+
+  const { username } = request.headers;
+
+  const user = users.find( (user) => user.username === username );
+
+  if(!user) {
+    return response.status(404).json({
+      error: "Username not found! "
+    });
+  };
+
+  const todoId = user.todos.find( (todoId) => todoId.id === id );
+
+  if(!todoId){
+    return response.status(404).json({
+      error: "Inválid todo Id! "
+    });
+  }
+  //const todo = user.todos;
+  request.user =  user ;
+  request.todo = todoId;
+
+  return next() ;
+
+}
+// ############################################
 function findUserById(request, response, next) {
-  // Complete aqui
-}
+  const { id }    = request.params;
 
+  const user = users.find( (user) => user.id === id) ;
+
+  if(!user) {
+    return response.status(404).json({ error: "User Id not found!"})
+  }
+
+  request.user = user;
+
+  return next();
+}
+// ############################################
 app.post('/users', (request, response) => {
   const { name, username } = request.body;
 
@@ -43,16 +106,16 @@ app.post('/users', (request, response) => {
   };
 
   users.push(user);
-
+  
   return response.status(201).json(user);
 });
-
+// ############################################
 app.get('/users/:id', findUserById, (request, response) => {
   const { user } = request;
 
   return response.json(user);
 });
-
+// ############################################
 app.patch('/users/:id/pro', findUserById, (request, response) => {
   const { user } = request;
 
@@ -64,13 +127,13 @@ app.patch('/users/:id/pro', findUserById, (request, response) => {
 
   return response.json(user);
 });
-
+// ############################################
 app.get('/todos', checksExistsUserAccount, (request, response) => {
   const { user } = request;
 
   return response.json(user.todos);
 });
-
+// ############################################
 app.post('/todos', checksExistsUserAccount, checksCreateTodosUserAvailability, (request, response) => {
   const { title, deadline } = request.body;
   const { user } = request;
@@ -87,7 +150,7 @@ app.post('/todos', checksExistsUserAccount, checksCreateTodosUserAvailability, (
 
   return response.status(201).json(newTodo);
 });
-
+// ############################################
 app.put('/todos/:id', checksTodoExists, (request, response) => {
   const { title, deadline } = request.body;
   const { todo } = request;
@@ -97,7 +160,7 @@ app.put('/todos/:id', checksTodoExists, (request, response) => {
 
   return response.json(todo);
 });
-
+// ############################################
 app.patch('/todos/:id/done', checksTodoExists, (request, response) => {
   const { todo } = request;
 
